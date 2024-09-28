@@ -1,0 +1,107 @@
+#!/bin/dash
+
+# for ease of access
+path=".pushy/index"
+
+# error if no directory found
+if [ ! -d ".pushy" ]; then
+	echo "pushy-commit: error: pushy repository directory .pushy not found" 1>&2
+	exit 1
+fi
+
+# Check invalid number of arguments
+if [ $# -ne 2 ]; then
+    echo "usage: pushy-commit -m commit-message" 1>&2
+    exit 1
+fi
+
+# Check invalid number of arguments
+if [ $# -eq 2 ] && [ "$1" != "-m" ]; then
+    echo "usage: pushy-commit -m commit-message" 1>&2
+    exit 1
+fi
+
+# create main directory/branch
+if [ ! -d ".pushy/main" ]; then
+    mkdir  ".pushy/main"
+fi
+
+# create files firectory for storing commited files
+if [ ! -d ".pushy/main/files" ]; then
+    mkdir  -p ".pushy/main/files"
+fi
+
+# create a file for tracking commit number
+if [ ! -f ".pushy/main/commit_num" ]; then
+    touch ".pushy/main/commit_num"
+fi
+
+# create a file for storing commit msgs and number
+if [ ! -f ".pushy/main/commit_logs" ]; then
+    touch ".pushy/main/commit_logs"
+fi
+
+# create a directory for storing different commits
+if [ ! -f ".pushy/main/commits" ]; then
+    mkdir -p ".pushy/main/commits"
+fi
+
+# extracting the tail of the file
+n=$(tail -n 1 ".pushy/main/commit_num")
+if [ -z "$n" ]; then
+    # if no directory in commits, then create a new directory with name "0"
+    mkdir -p ".pushy/main/commits/0"
+else 
+    # create a new commit directory for every commit 
+    if [ ! -f ".pushy/main/commits/$((n + 1))" ]; then
+        mkdir -p ".pushy/main/commits/$((n + 1))"
+    fi
+fi
+
+# store message from the user
+message=$2
+
+# if there is no file in index then dont commit
+if [ ! -n "$(ls -A $path 2>/dev/null)" ]; then
+    echo "nothing to commit"
+    exit 1
+fi
+
+# looping through index
+for file in $(ls $path/ | cat); do
+
+    if [ -f $path/$file ]; then
+        if [ -z "$n" ]; then
+            # copies and moves the index files to commits directory and main branch
+            cp "$path/$file" ".pushy/main/commits/0/$file"
+		    mv "$path/$file" ".pushy/main/files/$file"
+        else
+            # move from index to main branch (new files)
+            mv "$path/$file" ".pushy/main/files/$file"
+           
+           # looping the main branch so that we can track the file forever
+            for file in $(ls .pushy/main/files/ | cat); do
+                # copy the file if it doesnt exist in index
+                if [ ! -f "$path/$file" ]; then
+                    cp ".pushy/main/files/$file" ".pushy/main/commits/$((n + 1))/$file"   
+                else
+                # else copy the updated file from index
+                    cp "$path/$file" ".pushy/main/commits/$((n + 1))/$file"
+                fi
+            done 
+        fi
+    fi
+done
+
+# if commit num empty then store 0 in it and echo a msg
+if [ ! -s ".pushy/main/commit_num" ]; then
+    echo "Committed as commit 0"
+    echo "0" >> .pushy/main/commit_num
+    echo "0 $message" >> .pushy/main/commit_logs
+else 
+    # increment the commit number and store that number in the file
+    n=$((n + 1))
+    echo "$n" >> .pushy/main/commit_num
+    echo "Committed as commit $n"
+    echo "$n $message" >> .pushy/main/commit_logs
+fi

@@ -1,0 +1,15 @@
+#!/bin/dash
+
+# error if repo exists 
+if [ -d ".pushy" ]; then
+	echo "pushy-init: error: .pushy already exists"
+	exit 1
+fi
+
+echo "Initialized empty pushy repository in .pushy"
+# create new directory
+mkdir ".pushy"
+
+# create new directory for storing files 
+mkdir ".pushy/index"
+

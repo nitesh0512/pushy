@@ -1,0 +1,38 @@
+#!/bin/dash
+
+# for ease of access
+path=".pushy/index"
+
+# error if no directory found
+if [ ! -d ".pushy" ]; then
+	echo "pushy-add: error: pushy repository directory .pushy not found" 1>&2
+	exit 1
+fi
+# error if the syntax isnt correct
+if [ $# -eq 0 ]
+then    
+echo "usage: pushy-add <filenames>" 1>&2
+    exit 1
+    
+else
+    for file in "$@"; do
+        if [ -f "$file" ]; then
+            # compare files for tracking changes
+            if cmp -s "$file" "$path/$file"; then
+                        continue
+            fi
+
+            if cmp -s "$file" ".pushy/main/files/$file"; then
+                continue
+            fi
+
+            # copy from repo to the index directory
+            cp "$file" "$path/$file"
+	    
+        else 
+            # error if the file doesnt exists
+            echo "pushy-add: error: can not open '$file'" 1>&2
+		    continue
+        fi
+        done
+fi

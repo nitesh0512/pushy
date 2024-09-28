@@ -1,0 +1,56 @@
+#!/bin/dash
+
+# error if no directory found
+if [ ! -d ".pushy" ]; then
+	echo "pushy-show: error: pushy repository directory .pushy not found" 1>&2
+	exit 1
+fi
+
+# error if the syntax isnt correct
+if [ $# -ne 1 ] || { ! echo "$1" | grep -E ':.+$' > /dev/null; }; then
+    echo "usage: pushy-show <commit>:<filename>" 1>&2
+    exit 1
+fi
+
+path=".pushy/main/commits"
+
+#extract the commit number and filename around the colon
+commit=$(echo $1 | cut -d ":" -f1)
+file=$(echo $1 | cut -d ":" -f2)
+
+
+
+# if no commit number is mentioned
+if [ -z "$commit" ] ; then
+    # grab the latest file if that file isnt commited yet
+    if [ -f ".pushy/index/$file" ]; then
+        grep "." ".pushy/index/$file"
+    else    
+        # error if such file doesnt exists
+        if [ ! -f ".pushy/main/files/$file" ]; then
+		    echo "pushy-show: error: '$file' not found in index" 1>&2
+		    exit 1
+        else
+            # grab the file from main if commited   
+            grep "." ".pushy/main/files/$file"
+        fi
+    fi
+    
+# if commit number is mentioned
+else
+    # if the number is not in any of the commit directory
+    if [ ! -d "$path/$commit" ]; then
+        echo "pushy-show: error: unknown commit '$commit'" 1>&2
+        exit 1
+    fi
+
+    # error if the file doesnt exists in commit 
+    if [ ! -f "$path/$commit/$file" ]; then
+		echo "pushy-show: error: '$file' not found in commit $commit" 1>&2
+		exit 1	
+
+    else 
+        # grab the file from that commit directory
+        grep "." "$path/$commit/$file"
+    fi
+fi
